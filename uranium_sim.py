@@ -139,10 +139,10 @@ class Uranium:
                 # Find out how many neutrons are produced by this event.
                 n_neutrons_produced = neutrons.neutrons()
 
-                decay_pos = np.multiply(np.ones(3), 2 * self.radius)
+                decay_pos = np.multiply(np.random.rand(3), 2 * self.radius)
 
                 while np.linalg.norm(decay_pos) > self.radius:
-                    decay_pos = np.subtract(2 * self.radius * np.random.rand(3), self.radius)
+                    decay_pos = np.multiply(np.random.rand(3), 2 * self.radius)
                 '''
                 # Generate a spherical coord position vector to represent the
                 # initial neutron event, in phi, radius and theta
