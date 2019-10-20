@@ -100,9 +100,7 @@ class Uranium:
 
             # Return if the sqrt of the sum of squares of each
             # axis is less than the radius of the sphere.
-            return (np.sqrt(n_final_pos[0]**2 +
-                            n_final_pos[1]**2 +
-                            n_final_pos[2]**2) < self.radius)
+            return np.linalg.norm(n_final_pos) < self.radius
 
     def fission(self, n_decays):
         """Complete a fission run on the U-235 object
@@ -138,24 +136,23 @@ class Uranium:
             for i in range(n_decays):
                 # Find out how many neutrons are produced by this event.
                 n_neutrons_produced = neutrons.neutrons()
-
+                '''
                 decay_pos = np.multiply(np.random.rand(3), 2 * self.radius)
 
                 while np.linalg.norm(decay_pos) > self.radius:
                     decay_pos = np.multiply(np.random.rand(3), 2 * self.radius)
+
                 '''
                 # Generate a spherical coord position vector to represent the
                 # initial neutron event, in phi, radius and theta
                 phi = 2.0 * np.pi * np.random.random()
-                theta = np.arccos(2.0 * np.random.random() - 1.0)
-                radius = self.radius * np.random.random()
+                theta = np.arccos(2 * np.random.random() - 1)
+                radius = self.radius * np.cbrt(np.random.random())
                 
                 # Calculate the cartesian coordinates for the decay event
                 decay_pos = np.array([radius * np.sin(theta) * np.cos(phi),
-                                      radius * np.sin(theta) * np.sin(theta),
+                                      radius * np.sin(theta) * np.sin(phi),
                                       radius * np.cos(theta)])
-                
-                '''
 
                 # For each neutron produced, check if it remains within the sphere.
                 for j in range(n_neutrons_produced):
