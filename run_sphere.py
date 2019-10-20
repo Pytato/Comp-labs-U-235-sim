@@ -2,6 +2,7 @@ import uranium_sim
 import pylab as pl
 import seaborn
 import multiprocessing
+import time
 import numpy
 import tqdm
 
@@ -11,7 +12,6 @@ def magnitude(x):
 
 
 def step_to_true(initial, old_initial, ctx_data, prev_out=0):
-
     ctx_data["run_count"] += 1
 
     with uranium_sim.Uranium(initial, shape="sphere") as uranium_c:
@@ -47,7 +47,9 @@ def step_to_true(initial, old_initial, ctx_data, prev_out=0):
         return step_to_true(initial + ctx_data["step"], initial, ctx_data, prev_out=new_out)
 
 
-def gen_sphere_rad(run_point):
+def gen_sphere_rad(current_step):
+    import numpy
+
     context_dict = {
         "step": 0.015,
         "l_i": (0.09 - 0.060) * numpy.random.random() + 0.060,
@@ -69,29 +71,34 @@ def gen_sphere_rad(run_point):
 
 
 def handle_outputs(results_array):
-    global critical_length_a
     final_rad, ctx_data_out = results_array
-    critical_length_a.append(final_rad)
     pl.plot(numpy.arange(0.0, len(ctx_data_out["lengths"])), ctx_data_out["lengths"],
             label=("Starting at L = {}m".format(ctx_data_out["l_i"])), linewidth=0.5)
+    return final_rad
 
 
 if __name__ == "__main__":
     seaborn.set()
     plot_colours = ["red", "green", "blue"]
     critical_length_a = []
-    num_iter = 40
+    num_iter = 20
+    print("Please note, thread windup-time is around 20 seconds on eight core 3.9GHz "
+          "CPU for the default system, little to no activity will be visible before this time.")
 
     worker_pool = multiprocessing.Pool(multiprocessing.cpu_count()-2)
+    print(f"Processing pool of {multiprocessing.cpu_count()-2} workers established.")
     sim_results = []
 
-    for iterable in range(num_iter):
-        async_sim_result = worker_pool.apply_async(gen_sphere_rad, args=[iterable], callback=handle_outputs)
-        sim_results.append(async_sim_result)
+    async_sim_result = worker_pool.imap_unordered(gen_sphere_rad, list(range(num_iter)))
+    time.sleep(0.05)
+    main_prog_bar = tqdm.tqdm(async_sim_result, desc="Simulation Progress", ncols=100,
+                              unit="sim", smoothing=0, total=num_iter)
 
-    main_prog_bar = tqdm.tqdm(sim_results, desc="Simulation Progress", ncols=100, unit="sim", smoothing=0.5)
-    for result in main_prog_bar:
-        result.wait()
+    for simulation_result in main_prog_bar:
+        critical_rad = handle_outputs(simulation_result)
+        critical_length_a.append(critical_rad)
+
+    time.sleep(0.05)
 
     print("Mean:", numpy.mean(critical_length_a))
     print("Range:", (max(critical_length_a) - min(critical_length_a))/2)
